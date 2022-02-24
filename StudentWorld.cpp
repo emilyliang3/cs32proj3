@@ -64,6 +64,7 @@ int StudentWorld::init()
             for (int j = 0; j < GRID_HEIGHT; j++) {
                 Level::GridEntry ge;
                 ge = lev.getContentsOf(i, j);
+                //loading in all the actors
                 switch (ge)
                 {
                     case Level::block: {
@@ -71,16 +72,38 @@ int StudentWorld::init()
                         actors.push_back(b);
                         break; }
                     case Level::peach: {
-                        Peach* p = new Peach(this, i*SPRITE_WIDTH, j*SPRITE_HEIGHT);
-                        actors.push_back(p);
+                        Peach* peach = new Peach(this, i*SPRITE_WIDTH, j*SPRITE_HEIGHT);
+                        actors.push_back(peach);
                         break; }
                     case Level::pipe: {
-                        Pipe* p = new Pipe(this, i*SPRITE_WIDTH, j*SPRITE_HEIGHT);
-                        actors.push_back(p);
+                        Pipe* pip = new Pipe(this, i*SPRITE_WIDTH, j*SPRITE_HEIGHT);
+                        actors.push_back(pip);
                         break;
                     }
                     case Level::flag: {
-                        
+                        Flag* f = new Flag(this, i*SPRITE_WIDTH, j*SPRITE_HEIGHT);
+                        actors.push_back(f);
+                        break;
+                    }
+                    case Level::mario: {
+                        Mario* m = new Mario(this, i*SPRITE_WIDTH, j*SPRITE_HEIGHT);
+                        actors.push_back(m);
+                        break;
+                    }
+                    case Level::piranha: {
+                        Piranha* pir = new Piranha(this, i*SPRITE_WIDTH, j*SPRITE_HEIGHT);
+                        actors.push_back(pir);
+                        break;
+                    }
+                    case Level::koopa: {
+                        Koopa* k = new Koopa(this, i*SPRITE_WIDTH, j*SPRITE_HEIGHT);
+                        actors.push_back(k);
+                        break;
+                    }
+                    case Level::goomba: {
+                        Goomba* g = new Goomba(this, i*SPRITE_WIDTH, j*SPRITE_HEIGHT);
+                        actors.push_back(g);
+                        break;
                     }
                     default:
                         break;

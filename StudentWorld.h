@@ -21,15 +21,18 @@ public:
     //
     bool isBlockingObjectAt(int x, int y, Actor* a);
     bool isOverlap(Actor* a1, Actor* a2);
+    void addActor(Actor* act) { actors.push_back(act); } ;
     
     //virtual functions
     virtual int init();
     virtual int move();
     virtual void cleanUp();
-
+    
+    //getters
+    vector<Actor*>::iterator actorsBegin() { return actors.begin(); } ;
+    vector<Actor*>::iterator actorsEnd() { return actors.end(); } ;
 private:
     vector<Actor*> actors;
-    vector<int*> test;
     vector<GameWorld*> g;
 };
 

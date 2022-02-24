@@ -58,6 +58,13 @@ public:
     virtual void doSomething() {} ;
 };
 
+//koopa
+class Koopa : public Enemy
+{
+public:
+    Koopa(StudentWorld* world, int startX, int startY) : Enemy (world, IID_KOOPA, startX, startY) {} ;
+    virtual void doSomething() {} ;
+};
 
 //peach
 class Peach : public Actor
@@ -66,21 +73,33 @@ public:
     //constructor
     Peach(StudentWorld* world, int startX, int startY) : Actor(world, IID_PEACH, startX, startY, 0, 0, 1.0) {
         m_hp = 1;
-        m_tempInvisibility = false;
+        m_tempInvinc = false;
         m_starPower = false;
         m_shootPower = false;
         m_jumpPower = false;
+        m_remainingInvTicks = 0;
+        m_remainingJumpDis = 0;
+        m_remainingRechargeTicks = 0;
+        m_rechargeMode = false;
     };
     
     //other
     virtual void doSomething();
-    void attemptToMove(int targetX, int targetY);
+    bool attemptToMove(int targetX, int targetY);
 private:
     int m_hp;
-    bool m_tempInvisibility;
+    
+    bool m_tempInvinc;
+    int m_remainingInvTicks;
+    
     bool m_starPower;
+    
     bool m_shootPower;
+    bool m_rechargeMode;
+    int m_remainingRechargeTicks;
+    
     bool m_jumpPower;
+    int m_remainingJumpDis;
 };
 
 
