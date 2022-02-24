@@ -36,3 +36,13 @@ void Peach::attemptToMove(int targetX, int targetY)
         moveTo(targetX, targetY);
     }
 }
+
+//returns 0 or 180, each with a 50% chance
+int Enemy::getRandDir()
+{
+    int ran = rand() % 2;
+    if (ran == 1)
+        return 180;
+    return 0;
+
+}

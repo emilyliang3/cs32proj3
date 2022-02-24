@@ -5,16 +5,6 @@
 
 class StudentWorld;
 
-//helper functions
-int getRandomDir()
-{
-    int ran = rand() % 2;
-    if (ran == 1)
-        return 180;
-    return 0;
-}
-
-
 //actor
 class Actor : public GraphObject
 {
@@ -46,8 +36,10 @@ private:
 class Enemy : public Actor
 {
 public:
-    Enemy(StudentWorld* world, int imageID, int startX, int startY, int startDir, int depth, double size) : Actor(world, imageID, startX, startY, getRandomDir(), 0, 1) {};
+    Enemy(StudentWorld* world, int imageID, int startX, int startY) : Actor(world, imageID, startX, startY, getRandDir(), 0, 1) {};
     virtual void doSomething() {} ;
+private:
+    int getRandDir(); //to get 0 or 180 randomly for starting direction
 };
 
 //piranha
@@ -56,7 +48,7 @@ class Piranha : public Enemy
 public:
     Piranha(StudentWorld* world, int startX, int startY) : Enemy (world, IID_PIRANHA, startX, startY) {} ;
     virtual void doSomething() {} ;
-}
+};
 
 //goomba
 class Goomba : public Enemy
@@ -64,7 +56,7 @@ class Goomba : public Enemy
 public:
     Goomba(StudentWorld* world, int startX, int startY) : Enemy (world, IID_GOOMBA, startX, startY) {} ;
     virtual void doSomething() {} ;
-}
+};
 
 
 //peach
@@ -106,7 +98,7 @@ class Star : public Powerup
 public:
     Star(StudentWorld* world, int startX, int startY) : Powerup (world, IID_STAR, startX, startY) {} ;
     virtual void doSomething() {} ;
-}
+};
 
 //mushroom
 class Mushroom : public Powerup
@@ -114,7 +106,7 @@ class Mushroom : public Powerup
 public:
     Mushroom(StudentWorld* world, int startX, int startY) : Powerup (world, IID_MUSHROOM, startX, startY) {} ;
     virtual void doSomething() {} ;
-}
+};
 
 //flower
 class Flower : public Powerup
@@ -122,7 +114,7 @@ class Flower : public Powerup
 public:
     Flower(StudentWorld* world, int startX, int startY) : Powerup (world, IID_FLOWER, startX, startY) {} ;
     virtual void doSomething();
-}
+};
 
 
 //projectiles (fireballs, shell)
@@ -139,7 +131,7 @@ class PirFireball : public Projectile
 public:
     PirFireball(StudentWorld* world, int dir, int startX, int startY) : Projectile (world, IID_PIRANHA_FIRE, dir, startX, startY) {} ;
     virtual void doSomething() {} ;
-}
+};
 
 //peach fireball
 class PeachFireball : public Projectile
@@ -147,7 +139,7 @@ class PeachFireball : public Projectile
 public:
     PeachFireball(StudentWorld* world, int dir, int startX, int startY) : Projectile (world, IID_PEACH_FIRE, dir, startX, startY) {} ;
     virtual void doSomething() {} ;
-}
+};
 
 //shell
 class Shell : public Projectile
@@ -155,7 +147,7 @@ class Shell : public Projectile
 public:
     Shell(StudentWorld* world, int dir, int startX, int startY) : Projectile (world, IID_SHELL, dir, startX, startY) {} ;
     virtual void doSomething() {};
-}
+};
 
 
 //things that don't move (block, pipe)
@@ -189,17 +181,17 @@ public:
 class Portal : public Actor
 {
 public:
-    Portal(StudentWorld* world, int imageID, int startX, int startY) : Stationary(world, imageID, startX, startY, 0, 1, 1) {} ;
+    Portal(StudentWorld* world, int imageID, int startX, int startY) : Actor(world, imageID, startX, startY, 0, 1, 1) {} ;
     virtual void doSomething() {} ;
-}
+};
 
 //flag
 class Flag : public Portal
 {
 public:
-    Flag(StudentWorld* world, int startX, int startY) : Portal(world, IID_FLAG, startx, startY) {} ;
+    Flag(StudentWorld* world, int startX, int startY) : Portal(world, IID_FLAG, startX, startY) {} ;
     virtual void doSomething() {};
-}
+};
 
 //mario
 class Mario : public Portal
@@ -207,7 +199,7 @@ class Mario : public Portal
 public:
     Mario(StudentWorld* world, int startX, int startY) : Portal(world, IID_MARIO, startX, startY) {} ;
     virtual void doSomething() {};
-}
+};
 
 
 
