@@ -42,17 +42,18 @@ public:
     //setters
     void setPeachHP(int hp) const { peach->setHP(hp); }
     void grantInvincibility(int ticks) const { peach->grantInvinc(ticks);
-        peach->setInvinc();
+        peach->setStar();
     }
     void grantShootPower() const { peach->setShoot(); }
     void grantJumpPower() const { peach->setJump(); }
+    void grantStarPower() const { peach->setStar(); }
     
     //modifiers
     void addActor(Actor* act) { actors.push_back(act); }
     void addActorFront(Actor* act) { actors.insert(actors.begin(), act); }
     
     //accessors
-    bool isPeachInv() const {return peach->getInvinc(); }
+    bool isPeachInv() const {return peach->hasStar(); }
     
     //virtual functions
     virtual int init();

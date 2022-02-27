@@ -52,10 +52,11 @@ void Peach::doSomethingAux()
         return;
     
     //2- check if currently invincible
-    if (m_tempInvinc) {
+    if (m_tempInvinc || m_starPower) {
         m_remainingInvTicks--; //dec remaining invincible ticks
         if (m_remainingInvTicks == 0) //no more inviniciblity
-            m_tempInvinc = false;
+        {   m_tempInvinc = false;
+            m_starPower = false; }
     }
     
     //3- check if currently temp invincible
@@ -253,6 +254,7 @@ void Flower::grantGoodie()
 void Star::grantGoodie()
 {
     getWorld()->increaseScore(100);
+    getWorld()->grantStarPower();
     getWorld()->grantInvincibility(150);
 }
 
@@ -400,8 +402,7 @@ void Enemy::die()
 void Koopa::introduceShell()
 {
     Shell* s = new Shell(getWorld(), getDirection(), getX(), getY());
-    //getWorld()->addActorFront(s);
-    getWorld()->addActor(s);
+    getWorld()->addActorFront(s);
     getWorld()->removeDeadActors();
 }
 

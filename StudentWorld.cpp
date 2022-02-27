@@ -292,7 +292,6 @@ int StudentWorld::move()
         }
     }
     
-    
     //2- peach reached flag; advance to next level
     if (m_reachedFlag) {
         m_level++;
