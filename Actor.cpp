@@ -74,8 +74,8 @@ void Peach::doSomethingAux()
             m_rechargeMode = false; //can shoot again
     }
     
-    //5- check if peach overlaps with another object
-    getWorld()->bonkOverlappingPeach(this);
+    //5- check if peach overlaps with another object; bonk any overlapping objects
+    getWorld()->peachBonkOverlap();
     
     //6- check if previously jumping
     if (m_remainingJumpDis > 0) {
@@ -153,14 +153,14 @@ void Enemy::doSomethingAux()
         case 180: { //left
             if (!getWorld()->isMovePossible(getX()-1, getY(), this))
                 setDirection(0);
-            if (getWorld()->isMovePossible(getX()-1-SPRITE_WIDTH, getY()-1, this))
+            else if (!getWorld()->isBlocking(getX()-1, getY()-1))
                 setDirection(0);
             break;
         }
-        case 0: {
+        case 0: { //right
             if (!getWorld()->isMovePossible(getX()+1, getY(), this))
                 setDirection(180);
-            if (getWorld()->isMovePossible(getX()+1+SPRITE_WIDTH, getY()-1, this))
+            else if (!getWorld()->isBlocking(getX()+SPRITE_WIDTH, getY()-1))
                 setDirection(180);
             break;
         }
@@ -211,6 +211,16 @@ void Piranha::doSomethingAux()
     }
 }
 
+//portal
+void Portal::doSomethingAux()
+{
+    if (getWorld()->overlapsPeach(this)) {
+        getWorld()->increaseScore(1000);
+        setAlive(false);
+        levelComplete();
+    }
+}
+
 //goodies
 //powerup general
 void Powerup::doSomethingAux()
@@ -222,13 +232,12 @@ void Powerup::doSomethingAux()
         return;
     }
     //move 2 pixels down if possible
-    if (!getWorld()->moveIfPossible(this, getX(), getY()-2)) {
-        //if not possible do this-
-        int targetX = (getDirection()==0) ? getX()+2 : getX()-2;
-        if (!getWorld()->moveIfPossible(this, targetX, getY())) {
-            reverseDirection();
-            return;
-        }
+    getWorld()->moveIfPossible(this, getX(), getY()-2);
+    //move left/right if possible
+    int targetX = (getDirection()==0) ? getX()+2 : getX()-2;
+    if (!getWorld()->moveIfPossible(this, targetX, getY())) {
+        reverseDirection();
+        return;
     }
 }
 
@@ -320,6 +329,30 @@ void Block::getBonked(bool bonkerIsInvinciblePeach)
     }
 }
 
+//peach
+void Peach::getBonked(bool bonkerIsInvinciblePeach)
+{
+    //do nothing if peach is invinc at the moment
+    if (m_starPower || m_tempInvinc)
+        return;
+    
+    //decreasing hit points and setting temp invincibility
+    m_hp--;
+    m_tempInvinc = true;
+    m_remainingInvTicks = 10;
+    //turning off powerups
+    if (m_shootPower || m_jumpPower) {
+        m_shootPower = false;
+        m_jumpPower = false;
+    }
+    //peach still alive
+    if (m_hp >= 1)
+        getWorld()->playSound(SOUND_PLAYER_HURT);
+    //peach dead
+    if (m_hp <= 0)
+        setAlive(false);
+}
+
 //enemies
 void Enemy::getBonked(bool bonkerIsInvinciblePeach)
 {
@@ -367,7 +400,9 @@ void Enemy::die()
 void Koopa::introduceShell()
 {
     Shell* s = new Shell(getWorld(), getDirection(), getX(), getY());
+    //getWorld()->addActorFront(s);
     getWorld()->addActor(s);
+    getWorld()->removeDeadActors();
 }
 
 //kills koopa object and introduces shell
@@ -377,3 +412,13 @@ void Koopa::sufferDamageIfDamageable()
     introduceShell();
 }
 
+//endlevels
+void Flag::levelComplete()
+{
+    getWorld()->endLevel(false);
+}
+
+void Mario::levelComplete()
+{
+    getWorld()->endLevel(true);
+}

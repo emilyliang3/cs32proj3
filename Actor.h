@@ -114,9 +114,14 @@ public:
     
     //accessors
     bool getInvinc() { return m_tempInvinc; }
+    bool hasStar() { return m_starPower; }
+    bool hasShoot() { return m_shootPower; }
+    bool hasJump() { return m_jumpPower; }
     
     //other
     virtual bool isDamageable() { return true; }
+    virtual void getBonked(bool bonkerIsInvinciblePeach);
+    virtual void sufferDamageIfDamageable() { getBonked(false); }
 private:
     int m_hp;
     
@@ -215,7 +220,6 @@ class Stationary : public Actor
 {
 public:
     Stationary(StudentWorld* world, int imageID, int startX, int startY) : Actor (world, imageID, startX, startY, 0 , 2, 1) { setSolid(true); };
-    virtual void doSomething() {} ;
 private:
     virtual void doSomethingAux() {} ;
 };
@@ -246,9 +250,9 @@ class Portal : public Actor
 {
 public:
     Portal(StudentWorld* world, int imageID, int startX, int startY) : Actor(world, imageID, startX, startY, 0, 1, 1) {} ;
-    virtual void doSomething() {} ;
 private:
-    virtual void doSomethingAux() {} ;
+    virtual void doSomethingAux();
+    virtual void levelComplete() = 0;
 };
 
 //flag
@@ -256,9 +260,8 @@ class Flag : public Portal
 {
 public:
     Flag(StudentWorld* world, int startX, int startY) : Portal(world, IID_FLAG, startX, startY) {} ;
-    virtual void doSomething() {};
 private:
-    virtual void doSomethingAux() {} ;
+    virtual void levelComplete();
 };
 
 //mario
@@ -266,9 +269,8 @@ class Mario : public Portal
 {
 public:
     Mario(StudentWorld* world, int startX, int startY) : Portal(world, IID_MARIO, startX, startY) {} ;
-    virtual void doSomething() {};
 private:
-    virtual void doSomethingAux() {} ;
+    virtual void levelComplete();
 };
 
 

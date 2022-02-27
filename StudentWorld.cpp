@@ -3,6 +3,8 @@
 #include "Level.h"
 #include "Actor.h"
 #include <string>
+#include <iostream>
+#include <sstream>
 using namespace std;
 
 GameWorld* createStudentWorld(string assetPath)
@@ -21,11 +23,25 @@ bool StudentWorld::isMovePossible(int x, int y, Actor* a) const
     for (it = actors.begin(); it != actors.end(); it++) {
         Actor* a2 = *it;
         if (a2->isSolid()) {
-            if (x+SPRITE_WIDTH-1 >= a2->getX() && x <= a2->getX()+SPRITE_WIDTH-1 && y+SPRITE_WIDTH-1 >= a2->getY() && y <= a2->getY()+SPRITE_HEIGHT-1)
+            if (x+SPRITE_WIDTH-1 >= a2->getX() && x <= a2->getX()+SPRITE_WIDTH-1 && y+SPRITE_HEIGHT-1 >= a2->getY() && y <= a2->getY()+SPRITE_HEIGHT-1)
                 return false;
         }
     }
     return true;
+}
+
+//returns true if a solid object is blocking (x,y); false otherwise
+bool StudentWorld::isBlocking(int x, int y)
+{
+    vector<Actor*>::const_iterator it;
+    for (it = actors.begin(); it != actors.end(); it++) {
+        Actor* a2 = *it;
+        if (a2->isSolid()) {
+            if (x >= a2->getX() && x <= a2->getX()+SPRITE_WIDTH-1 && y >= a2->getY() && y <= a2->getY()+SPRITE_HEIGHT-1)
+                return true;
+        }
+    }
+    return false;
 }
 
 //returns true if a can move to x,y and moves it; false otherwise
@@ -128,6 +144,15 @@ bool StudentWorld::bonkOverlappingActor(Actor* bonker) const
     return false;
 }
 
+void StudentWorld::peachBonkOverlap()
+{
+    vector<Actor*>::iterator it;
+    for (it = actors.begin(); it != actors.end(); it++) {
+        if (overlapsPeach(*it))
+            (*it)->getBonked(isPeachInv());
+    }
+}
+
 //**********************
 //damage functions
 //**********************
@@ -165,9 +190,17 @@ bool StudentWorld::damageOverlappingActor(Actor* damager) const
 //initializating game
 int StudentWorld::init()
 {
+    //getting correct level
     Level lev(assetPath());
-    string level_file = "level01.txt";
+    ostringstream oss;
+    oss.fill('0');
+    oss << "level" << setw(2) << m_level << ".txt";
+    string level_file = oss.str();
     Level::LoadResult result = lev.loadLevel(level_file);
+    
+    //reset everything
+    m_reachedFlag = false;
+    m_reachedMario = false;
     
     if (result == Level::load_fail_file_not_found || result == Level::load_fail_bad_format)
         return GWSTATUS_LEVEL_ERROR;
@@ -247,27 +280,47 @@ int StudentWorld::init()
 int StudentWorld::move()
 {
     //1- all actors must do something
+    peach->doSomething();
     vector<Actor*>::iterator it;
     for (it = actors.begin(); it != actors.end(); it++) {
         (*it)->doSomething();
         //checking if peach is still alive
         if (!peach->isAlive()) {
+            decLives();
             playSound(SOUND_PLAYER_DIE);
             return GWSTATUS_PLAYER_DIED;
         }
-        //4- delete dead actors
-        if (!(*it)->isAlive()) {
-            delete *it;
-            actors.erase(it--);
-        }
     }
-    peach->doSomething();
+    
     
     //2- peach reached flag; advance to next level
+    if (m_reachedFlag) {
+        m_level++;
+        playSound(SOUND_FINISHED_LEVEL);
+        return GWSTATUS_FINISHED_LEVEL;
+    }
     
     //3- peach reached mario; game over
+    if (m_reachedMario) {
+        playSound(SOUND_GAME_OVER);
+        return GWSTATUS_PLAYER_WON;
+    }
+    
+    //4- delete dead actors
+    removeDeadActors();
     
     //5- update text status
+    ostringstream oss;
+    oss.fill('0');
+    oss << "Lives: " << getLives() << " Level: " << getLevel() << " Points: " << setw(6) << getScore();
+    if (peach->hasStar())
+        oss << " StarPower!";
+    if (peach->hasJump())
+        oss << " JumpPower!";
+    if (peach->hasShoot())
+        oss << " ShootPower!";
+    string stat = oss.str();
+    setGameStatText(stat);
     
     //6- game not over, peach still alive
     return GWSTATUS_CONTINUE_GAME;
@@ -286,3 +339,25 @@ void StudentWorld::cleanUp()
     delete peach;
 }
 
+//helper functions
+
+//removes all dead actors from game
+void StudentWorld::removeDeadActors()
+{
+    vector<Actor*>::iterator it;
+    for (it = actors.begin(); it != actors.end(); it++) {
+        if (!(*it)->isAlive()) {
+            delete *it;
+            actors.erase(it--);
+        }
+    }
+}
+
+//ends level
+void StudentWorld::endLevel(bool isGameWon)
+{
+    if (isGameWon)
+        m_reachedMario = true;
+    else
+        m_reachedFlag = true;
+}
