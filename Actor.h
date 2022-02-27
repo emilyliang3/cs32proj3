@@ -12,20 +12,33 @@ public:
     //constructor
     Actor(StudentWorld* world, int imageID, int startX, int startY, int startDir, int depth, double size) : GraphObject(imageID, startX, startY, startDir, depth, size), m_world(world), m_alive(true), m_solid(false) {};
     
-    //pure virtual
-    virtual void doSomething() = 0;
+    //virtual
+    virtual void doSomething() { if (isAlive()) doSomethingAux(); } ;
     
     //getters
     bool isAlive() { return m_alive; }
     bool isSolid() { return m_solid; }
     StudentWorld* getWorld() const { return m_world; }
+    virtual bool isDamageable() { return false; }
     
     //setters
     void setAlive(bool b) { m_alive = b; }
     void setSolid(bool b) { m_solid = b; }
     
+    // Bonk this actor.  Parameter says whether bonker is Peach with invincibiity.
+    virtual void getBonked(bool bonkerIsInvinciblePeach) {} ;
+    // Do what the spec says happens when damage is inflicted on this actor.
+    virtual void sufferDamageIfDamageable() {} ;
+
+    void fallIfPossible(int dist);
+    void reverseDirection();
+
+    // Set destx and desty to the coordinates dist pixels away in direction
+    // dir from this actor's position.
+    void converDirectionAndDistanceToXY(int dir, int dist, int& destx, int& desty) const;
     
 private:
+    virtual void doSomethingAux() = 0;
     StudentWorld* m_world;
     bool m_alive;
     bool m_solid;
@@ -36,18 +49,23 @@ private:
 class Enemy : public Actor
 {
 public:
-    Enemy(StudentWorld* world, int imageID, int startX, int startY) : Actor(world, imageID, startX, startY, getRandDir(), 0, 1) {};
-    virtual void doSomething() {} ;
+    Enemy(StudentWorld* world, int imageID, int startX, int startY) : Actor(world, imageID, startX, startY, randInt(0,1)*180, 0, 1) {};
+    virtual void getBonked(bool bonkerIsInvinciblePeach);
+    virtual bool isDamageable() { return true; }
+    virtual void sufferDamageIfDamageable() { die(); }
+    void die();
 private:
-    int getRandDir(); //to get 0 or 180 randomly for starting direction
+    virtual void doSomethingAux();
 };
 
 //piranha
 class Piranha : public Enemy
 {
 public:
-    Piranha(StudentWorld* world, int startX, int startY) : Enemy (world, IID_PIRANHA, startX, startY) {} ;
-    virtual void doSomething() {} ;
+    Piranha(StudentWorld* world, int startX, int startY) : Enemy (world, IID_PIRANHA, startX, startY), m_fireDelay(0) {} ;
+private:
+    virtual void doSomethingAux(); //different than the generic enemy doSomething
+    int m_fireDelay;
 };
 
 //goomba
@@ -55,7 +73,7 @@ class Goomba : public Enemy
 {
 public:
     Goomba(StudentWorld* world, int startX, int startY) : Enemy (world, IID_GOOMBA, startX, startY) {} ;
-    virtual void doSomething() {} ;
+private:
 };
 
 //koopa
@@ -63,7 +81,10 @@ class Koopa : public Enemy
 {
 public:
     Koopa(StudentWorld* world, int startX, int startY) : Enemy (world, IID_KOOPA, startX, startY) {} ;
-    virtual void doSomething() {} ;
+    virtual void getBonked(bool bonkerIsInvinciblePeach); //different from generic enemy
+    virtual void sufferDamageIfDamageable(); //different from generic enemy
+private:
+    void introduceShell(); //when koopa dies; creates new shell object at place of death
 };
 
 //peach
@@ -83,9 +104,19 @@ public:
         m_rechargeMode = false;
     };
     
+    //setters
+    void setShoot() { m_shootPower = true; }
+    void setStar() { m_starPower = true; }
+    void setHP(int hp) { m_hp = hp; }
+    void setJump() { m_jumpPower = true; }
+    void setInvinc() { m_tempInvinc = true; }
+    void grantInvinc(int ticks) { m_remainingInvTicks = ticks; }
+    
+    //accessors
+    bool getInvinc() { return m_tempInvinc; }
+    
     //other
-    virtual void doSomething();
-    bool attemptToMove(int targetX, int targetY);
+    virtual bool isDamageable() { return true; }
 private:
     int m_hp;
     
@@ -100,6 +131,8 @@ private:
     
     bool m_jumpPower;
     int m_remainingJumpDis;
+    
+    virtual void doSomethingAux();
 };
 
 
@@ -108,7 +141,9 @@ class Powerup : public Actor
 {
 public:
     Powerup(StudentWorld* world, int imageID, int startX, int startY) : Actor (world, imageID, startX, startY, 0, 1, 1) {} ;
-    virtual void doSomething() {} ;
+    virtual void grantGoodie() {} ;
+private:
+    virtual void doSomethingAux();
 };
 
 //star
@@ -116,7 +151,8 @@ class Star : public Powerup
 {
 public:
     Star(StudentWorld* world, int startX, int startY) : Powerup (world, IID_STAR, startX, startY) {} ;
-    virtual void doSomething() {} ;
+    virtual void grantGoodie();
+private:
 };
 
 //mushroom
@@ -124,7 +160,8 @@ class Mushroom : public Powerup
 {
 public:
     Mushroom(StudentWorld* world, int startX, int startY) : Powerup (world, IID_MUSHROOM, startX, startY) {} ;
-    virtual void doSomething() {} ;
+    virtual void grantGoodie();
+private:
 };
 
 //flower
@@ -132,7 +169,8 @@ class Flower : public Powerup
 {
 public:
     Flower(StudentWorld* world, int startX, int startY) : Powerup (world, IID_FLOWER, startX, startY) {} ;
-    virtual void doSomething();
+    virtual void grantGoodie();
+private:
 };
 
 
@@ -141,7 +179,9 @@ class Projectile : public Actor
 {
 public:
     Projectile(StudentWorld* world, int imageID, int dir, int startX, int startY) : Actor (world, imageID, startX, startY, dir, 1, 1) {} ;
-    virtual void doSomething() {} ;
+    void projectileMove();
+private:
+    virtual void doSomethingAux();
 };
 
 //piranha fireball
@@ -149,7 +189,8 @@ class PirFireball : public Projectile
 {
 public:
     PirFireball(StudentWorld* world, int dir, int startX, int startY) : Projectile (world, IID_PIRANHA_FIRE, dir, startX, startY) {} ;
-    virtual void doSomething() {} ;
+private:
+    virtual void doSomethingAux();
 };
 
 //peach fireball
@@ -157,7 +198,7 @@ class PeachFireball : public Projectile
 {
 public:
     PeachFireball(StudentWorld* world, int dir, int startX, int startY) : Projectile (world, IID_PEACH_FIRE, dir, startX, startY) {} ;
-    virtual void doSomething() {} ;
+private:
 };
 
 //shell
@@ -165,7 +206,7 @@ class Shell : public Projectile
 {
 public:
     Shell(StudentWorld* world, int dir, int startX, int startY) : Projectile (world, IID_SHELL, dir, startX, startY) {} ;
-    virtual void doSomething() {};
+private:
 };
 
 
@@ -176,15 +217,20 @@ public:
     Stationary(StudentWorld* world, int imageID, int startX, int startY) : Actor (world, imageID, startX, startY, 0 , 2, 1) { setSolid(true); };
     virtual void doSomething() {} ;
 private:
-    
+    virtual void doSomethingAux() {} ;
 };
 
 //block
 class Block : public Stationary
 {
 public:
-    Block(StudentWorld* world, int startX, int startY) : Stationary(world, IID_BLOCK, startX, startY) {};
-    virtual void doSomething() {} ;
+    enum blockType { none, flower, star, mushroom };
+    Block(StudentWorld* world, int startX, int startY, blockType bt) : Stationary(world, IID_BLOCK, startX, startY), m_goodie(bt), m_goodieReleased(false) {};
+    virtual void getBonked(bool bonkerIsInvinciblePeach);
+private:
+    blockType m_goodie;
+    bool m_goodieReleased;
+    
 };
 
 //pipe
@@ -192,7 +238,6 @@ class Pipe : public Stationary
 {
 public:
     Pipe(StudentWorld* world, int startX, int startY) : Stationary(world, IID_PIPE, startX, startY) {};
-    virtual void doSomething() {} ;
 };
 
 
@@ -202,6 +247,8 @@ class Portal : public Actor
 public:
     Portal(StudentWorld* world, int imageID, int startX, int startY) : Actor(world, imageID, startX, startY, 0, 1, 1) {} ;
     virtual void doSomething() {} ;
+private:
+    virtual void doSomethingAux() {} ;
 };
 
 //flag
@@ -210,6 +257,8 @@ class Flag : public Portal
 public:
     Flag(StudentWorld* world, int startX, int startY) : Portal(world, IID_FLAG, startX, startY) {} ;
     virtual void doSomething() {};
+private:
+    virtual void doSomethingAux() {} ;
 };
 
 //mario
@@ -218,6 +267,8 @@ class Mario : public Portal
 public:
     Mario(StudentWorld* world, int startX, int startY) : Portal(world, IID_MARIO, startX, startY) {} ;
     virtual void doSomething() {};
+private:
+    virtual void doSomethingAux() {} ;
 };
 
 

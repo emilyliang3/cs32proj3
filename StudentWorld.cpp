@@ -10,22 +10,71 @@ GameWorld* createStudentWorld(string assetPath)
     return new StudentWorld(assetPath);
 }
 
-// Students:  Add code to this file, StudentWorld.h, Actor.h, and Actor.cpp
+//**********************
+//movement functions
+//**********************
 
-bool StudentWorld::isBlockingObjectAt(int x, int y, Actor* a)
+//returns true if possible for a to move x,y; false otherwise
+bool StudentWorld::isMovePossible(int x, int y, Actor* a) const
 {
-    vector<Actor*>::iterator it;
+    vector<Actor*>::const_iterator it;
     for (it = actors.begin(); it != actors.end(); it++) {
         Actor* a2 = *it;
         if (a2->isSolid()) {
             if (x+SPRITE_WIDTH-1 >= a2->getX() && x <= a2->getX()+SPRITE_WIDTH-1 && y+SPRITE_WIDTH-1 >= a2->getY() && y <= a2->getY()+SPRITE_HEIGHT-1)
-                return true;
+                return false;
         }
     }
-    return false;
+    return true;
 }
 
-bool StudentWorld::isOverlap(Actor* a1, Actor* a2)
+//returns true if a can move to x,y and moves it; false otherwise
+bool StudentWorld::moveIfPossible(Actor* a, int x, int y) const
+{
+    if (!isMovePossible(x, y, a))
+        return false;
+    a->moveTo(x, y);
+    return true;
+}
+
+//returns true if a can move to destx, desty and moves it; otherwise bonk object blocking destx,desty and return false
+bool StudentWorld::moveOrBonk(Actor *a, int destx, int desty) const
+{
+    vector<Actor*>::const_iterator it;
+    for (it = actors.begin(); it != actors.end(); it++) {
+        Actor* a2 = *it;
+        if (a2->isSolid()) {
+            if (destx+SPRITE_WIDTH-1 >= a2->getX() && destx <= a2->getX()+SPRITE_WIDTH-1 && desty+SPRITE_WIDTH-1 >= a2->getY() && desty <= a2->getY()+SPRITE_HEIGHT-1) {
+                a2->getBonked(false);
+                return false;
+            }
+        }
+    }
+    a->moveTo(destx, desty);
+    return true;
+}
+
+// If the y cooodinates of a and Peach are at least yDeltaLimit apart,
+// return false; otherwise, set xDeltaFromActor to the difference
+// between Peach's and a's x coordinates (positive means Peach is to
+// the right of a) and return true.
+bool StudentWorld::getPeachTargetingInfo(Actor* a, int yDeltaLimit, int& xDeltaFromActor) const
+{
+    int aY = a->getY();
+    int pY = peach->getY();
+    if (abs(aY-pY) >= yDeltaLimit)
+        return false;
+    int differenceX = peach->getX() - a->getX();
+    xDeltaFromActor = differenceX;
+    return true;
+}
+
+//**********************
+//overlap functions
+//**********************
+
+//generic
+bool StudentWorld::isOverlap(Actor* a1, Actor* a2) const
 {
     //actor 1's bounds
     int a1up = a1->getY()+SPRITE_HEIGHT-1;
@@ -39,18 +88,81 @@ bool StudentWorld::isOverlap(Actor* a1, Actor* a2)
     int a2right = a2->getX()+SPRITE_WIDTH-1;
     
     //comparing the two actors' bounds
+    bool verticalOverlap = false;
+    bool horizontalOverlap = false;
     if (a2down <= a1up && !(a2up <= a1down)) //overlap on top
-        return true;
+        verticalOverlap = true;
     if (a2up >= a1down && !(a2down >= a1up)) //overlap on bottom
-        return true;
+        verticalOverlap = true;
     if (a2left <= a1right && !(a2right <= a1left)) //overlap on right
-        return true;
+        horizontalOverlap = true;
     if (a2right >= a1left && !(a2left >= a1right)) //overlap on left
-        return true;
+        horizontalOverlap = true;
     
+    return (verticalOverlap && horizontalOverlap); //need both vertical and horizontal overlap
+}
+
+//overlap with peach
+bool StudentWorld::overlapsPeach(Actor* a) const
+{
+    return isOverlap(a, peach);
+}
+
+//if actor is overlapping peach, peach gets bonked
+bool StudentWorld::bonkOverlappingPeach(Actor* bonker) const
+{
+    if (isOverlap(bonker, peach)) {
+        peach->getBonked(false);
+        return true;
+    }
     return false;
 }
 
+//if actor is overlapping peach, actor gets bonked by peach
+bool StudentWorld::bonkOverlappingActor(Actor* bonker) const
+{
+    if (isOverlap(bonker, peach)) {
+        bonker->getBonked(isPeachInv());
+        return true;
+    }
+    return false;
+}
+
+//**********************
+//damage functions
+//**********************
+
+// If Peach overlaps damager, damage her and return true; otherwise,
+// return false.
+bool StudentWorld::damageOverlappingPeach(Actor* damager) const
+{
+    if(isOverlap(damager, peach)) {
+        peach->sufferDamageIfDamageable();
+        return true;
+    }
+    return false;
+}
+
+// If a non-Peach actor overlaps damager, damage that non-Peach actor
+// and return true; otherwise, return false.
+bool StudentWorld::damageOverlappingActor(Actor* damager) const
+{
+    vector<Actor*>::const_iterator it;
+    for (it = actors.begin(); it != actors.end(); it++) {
+        if ((*it)->isDamageable() && isOverlap(*it, damager)) {
+            (*it)->sufferDamageIfDamageable();
+            return true;
+        }
+    }
+    return false;
+}
+
+
+//**********************
+//virtual functions
+//**********************
+
+//initializating game
 int StudentWorld::init()
 {
     Level lev(assetPath());
@@ -68,13 +180,29 @@ int StudentWorld::init()
                 switch (ge)
                 {
                     case Level::block: {
-                        Block* b = new Block(this, i*SPRITE_WIDTH, j*SPRITE_HEIGHT);
+                        Block* b = new Block(this, i*SPRITE_WIDTH, j*SPRITE_HEIGHT, Block::none);
                         actors.push_back(b);
-                        break; }
+                        break;
+                    }
+                    case Level::flower_goodie_block: {
+                        Block* b = new Block(this, i*SPRITE_WIDTH, j*SPRITE_HEIGHT, Block::flower);
+                        actors.push_back(b);
+                        break;
+                    }
+                    case Level::mushroom_goodie_block: {
+                        Block* b = new Block(this, i*SPRITE_WIDTH, j*SPRITE_HEIGHT, Block::mushroom);
+                        actors.push_back(b);
+                        break;
+                    }
+                    case Level::star_goodie_block: {
+                        Block* b = new Block(this, i*SPRITE_WIDTH, j*SPRITE_HEIGHT, Block::star);
+                        actors.push_back(b);
+                        break;
+                    }
                     case Level::peach: {
-                        Peach* peach = new Peach(this, i*SPRITE_WIDTH, j*SPRITE_HEIGHT);
-                        actors.push_back(peach);
-                        break; }
+                         peach = new Peach(this, i*SPRITE_WIDTH, j*SPRITE_HEIGHT);
+                         break;
+                    }
                     case Level::pipe: {
                         Pipe* pip = new Pipe(this, i*SPRITE_WIDTH, j*SPRITE_HEIGHT);
                         actors.push_back(pip);
@@ -115,21 +243,46 @@ int StudentWorld::init()
     return GWSTATUS_CONTINUE_GAME;
 }
 
+//making all actors move
 int StudentWorld::move()
 {
-    // This code is here merely to allow the game to build, run, and terminate after you hit enter.
-    // Notice that the return value GWSTATUS_PLAYER_DIED will cause our framework to end the current level.
+    //1- all actors must do something
     vector<Actor*>::iterator it;
     for (it = actors.begin(); it != actors.end(); it++) {
         (*it)->doSomething();
+        //checking if peach is still alive
+        if (!peach->isAlive()) {
+            playSound(SOUND_PLAYER_DIE);
+            return GWSTATUS_PLAYER_DIED;
+        }
+        //4- delete dead actors
+        if (!(*it)->isAlive()) {
+            delete *it;
+            actors.erase(it--);
+        }
     }
-    //decLives();
+    peach->doSomething();
+    
+    //2- peach reached flag; advance to next level
+    
+    //3- peach reached mario; game over
+    
+    //5- update text status
+    
+    //6- game not over, peach still alive
     return GWSTATUS_CONTINUE_GAME;
 }
 
+//destroying game
 void StudentWorld::cleanUp()
 {
     vector<Actor*>::iterator it;
-    for (it = actors.begin(); it != actors.end(); )
-        it = actors.erase(it);
+    it = actors.begin();
+    while (it != actors.end()) {
+        delete *it;
+        actors.erase(it);
+        it = actors.begin();
+    }
+    delete peach;
 }
+
